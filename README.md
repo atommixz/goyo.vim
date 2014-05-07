@@ -39,15 +39,19 @@ Configuration
 ### adding by atommixz
 
 try it:
-- `let goyo_width = 80
+```vim
+let goyo_width = 80
 let goyo_margin_top = 0
-let goyo_margin_bottom = 0`
+let goyo_margin_bottom = 0
+```
 or it:
-- `let goyo_width = 0
+```vim
+let goyo_width = 0
 let goyo_margin_left = 45
 let goyo_margin_right = 0
 let goyo_margin_top = 0
-let goyo_margin_bottom = 0`
+let goyo_margin_bottom = 0
+```
 
 ### Callbacks
 
