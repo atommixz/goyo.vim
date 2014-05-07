@@ -24,289 +24,332 @@
 let s:cpo_save = &cpo
 set cpo&vim
 
+let s:goyo_width = get(g:, 'goyo_width',         80)
+let s:lmargin    = get(g:, 'goyo_margin_left',   0)
+let s:rmargin    = get(g:, 'goyo_margin_right',  0)
+let s:tmargin    = get(g:, 'goyo_margin_top',    0)
+let s:bmargin    = get(g:, 'goyo_margin_bottom', 0)
+
 function! s:get_color(group, attr)
-  return synIDattr(synIDtrans(hlID(a:group)), a:attr)
+	return synIDattr(synIDtrans(hlID(a:group)), a:attr)
 endfunction
 
 function! s:set_color(group, attr, color)
-  let gui = has('gui_running')
-  execute printf("hi %s %s%s=%s", a:group, gui ? 'gui' : 'cterm', a:attr, a:color)
+	let gui = has('gui_running')
+	execute printf("hi %s %s%s=%s", a:group, gui ? 'gui' : 'cterm', a:attr, a:color)
 endfunction
 
 function! s:blank()
-  let main = bufwinnr(t:goyo_master)
-  if main != -1
-    execute main . 'wincmd w'
-  else
-    call s:goyo_off()
-  endif
+	let main = bufwinnr(t:goyo_master)
+	if main != -1
+		execute main . 'wincmd w'
+	else
+		call s:goyo_off()
+	endif
 endfunction
 
 function! s:init_pad(command)
-  execute a:command
+	execute a:command
 
-  setlocal buftype=nofile bufhidden=wipe nomodifiable nobuflisted noswapfile
-      \ nonu nocursorline nocursorcolumn winfixwidth winfixheight statusline=\ 
-  if exists('&rnu')
-    setlocal nornu
-  endif
-  if exists('&colorcolumn')
-    setlocal colorcolumn=
-  endif
-  let bufnr = winbufnr(0)
+	setlocal buftype=nofile bufhidden=wipe nomodifiable nobuflisted noswapfile
+			\ nonu nocursorline nocursorcolumn winfixwidth winfixheight statusline=\
+	if exists('&rnu')
+		setlocal nornu
+	endif
+	if exists('&colorcolumn')
+		setlocal colorcolumn=
+	endif
+	let bufnr = winbufnr(0)
 
-  execute winnr('#') . 'wincmd w'
-  return bufnr
+	execute winnr('#') . 'wincmd w'
+	return bufnr
 endfunction
 
 function! s:setup_pad(bufnr, vert, size)
-  let win = bufwinnr(a:bufnr)
-  execute win . 'wincmd w'
-  execute (a:vert ? 'vertical ' : '') . 'resize ' . max([0, a:size])
-  augroup goyop
-    autocmd WinEnter <buffer> call s:blank()
-  augroup END
+	let win = bufwinnr(a:bufnr)
+	execute win . 'wincmd w'
+	execute (a:vert ? 'vertical ' : '') . 'resize ' . max([0, a:size])
+	augroup goyop
+		autocmd WinEnter <buffer> call s:blank()
+	augroup END
 
-  " To hide scrollbars of pad windows in GVim
-  let diff = winheight(0) - line('$') - (has('gui_running') ? 2 : 0)
-  if diff > 0
-    setlocal modifiable
-    call append(0, map(range(1, diff), '""'))
-    normal! gg
-    setlocal nomodifiable
-  endif
-  execute winnr('#') . 'wincmd w'
+	" To hide scrollbars of pad windows in GVim
+	let diff = winheight(0) - line('$') - (has('gui_running') ? 2 : 0)
+	if diff > 0
+		setlocal modifiable
+		call append(0, map(range(1, diff), '""'))
+		normal! gg
+		setlocal nomodifiable
+	endif
+	execute winnr('#') . 'wincmd w'
 endfunction
 
 function! s:hmargin()
-  let nwidth = max([len(string(line('$'))) + 1, &numberwidth])
-  let width  = t:goyo_width + (&number ? nwidth : 0)
-  return (&columns - width)
+	let nwidth = max([len(string(line('$'))) + 1, &numberwidth])
+	let width = t:goyo_width + (&number ? nwidth : 0)
+	return (&columns - width)
 endfunction
 
 function! s:resize_pads()
-  let hmargin = s:hmargin()
-  let tmargin = get(g:, 'goyo_margin_top', 4)
-  let bmargin = get(g:, 'goyo_margin_bottom', 4)
+	let hmargin = s:hmargin()
 
-  augroup goyop
-    autocmd!
-  augroup END
-  call s:setup_pad(t:goyo_pads.t, 0, tmargin - 1)
-  call s:setup_pad(t:goyo_pads.b, 0, bmargin - 2)
-  call s:setup_pad(t:goyo_pads.l, 1, hmargin / 2 - 1)
-  call s:setup_pad(t:goyo_pads.r, 1, hmargin / 2 - 1)
+	augroup goyop
+		autocmd!
+	augroup END
+
+	if t:goyo_width > 0
+		call s:setup_pad(t:goyo_pads.l, 1, hmargin / 2 - 1)
+		call s:setup_pad(t:goyo_pads.r, 1, hmargin / 2 - 1)
+		if s:tmargin > 0
+			call s:setup_pad(t:goyo_pads.t, 0, s:tmargin - 2)
+		endif
+		if s:bmargin > 0
+			call s:setup_pad(t:goyo_pads.b, 0, s:bmargin - 2)
+		endif
+	else
+		if s:lmargin > 0
+			call s:setup_pad(t:goyo_pads.l, 1, s:lmargin)
+		endif
+		if s:rmargin > 0
+			call s:setup_pad(t:goyo_pads.r, 1, s:rmargin)
+		endif
+		if s:tmargin > 0
+			call s:setup_pad(t:goyo_pads.t, 0, s:tmargin - 2)
+		endif
+		if s:bmargin > 0
+			call s:setup_pad(t:goyo_pads.b, 0, s:bmargin - 2)
+		endif
+	endif
 endfunction
 
 function! s:tranquilize()
-  let bg = s:get_color('Normal', 'bg')
-  for grp in ['NonText', 'FoldColumn', 'ColorColumn', 'VertSplit',
-            \ 'StatusLine', 'StatusLineNC', 'SignColumn']
-    " -1 on Vim / '' on GVim
-    if bg == -1 || empty(bg)
-      call s:set_color(grp, 'fg', get(g:, 'goyo_bg', 'black'))
-      call s:set_color(grp, 'bg', 'NONE')
-    else
-      call s:set_color(grp, 'fg', bg)
-      call s:set_color(grp, 'bg', bg)
-    endif
-    call s:set_color(grp, '', 'NONE')
-  endfor
+	let bg = s:get_color('Normal', 'bg')
+	for grp in ['NonText', 'FoldColumn', 'ColorColumn', 'VertSplit',
+						\ 'StatusLine', 'StatusLineNC', 'SignColumn']
+		" -1 on Vim / '' on GVim
+		if bg == -1 || empty(bg)
+			call s:set_color(grp, 'fg', get(g:, 'goyo_bg', 'black'))
+			call s:set_color(grp, 'bg', 'NONE')
+		else
+			call s:set_color(grp, 'fg', bg)
+			call s:set_color(grp, 'bg', bg)
+		endif
+		call s:set_color(grp, '', 'NONE')
+	endfor
 endfunction
 
 function! s:goyo_on(width)
-  let s:orig_tab = tabpagenr()
+	let s:orig_tab = tabpagenr()
 
-  " New tab
-  tab split
+	" New tab
+	tab split
 
-  let t:goyo_master = winbufnr(0)
-  let t:goyo_width  = a:width
-  let t:goyo_pads = {}
-  let t:goyo_revert =
-    \ { 'laststatus':     &laststatus,
-    \   'showtabline':    &showtabline,
-    \   'fillchars':      &fillchars,
-    \   'winwidth':       &winwidth,
-    \   'winminheight':   &winminheight,
-    \   'winheight':      &winheight,
-    \   'statusline':     &statusline,
-    \   'ruler':          &ruler,
-    \   'sidescroll':     &sidescroll,
-    \   'sidescrolloff':  &sidescrolloff
-    \ }
-  if has('gui_running')
-    let t:goyo_revert.guioptions = &guioptions
-  endif
+	let t:goyo_master = winbufnr(0)
+	let t:goyo_width = a:width
+	let t:goyo_pads = {}
+	let t:goyo_revert =
+		\ { 'laststatus':		&laststatus,
+		\	'showtabline':		&showtabline,
+		\	'fillchars':		&fillchars,
+		\	'winwidth':			&winwidth,
+		\	'winminheight':		&winminheight,
+		\	'winheight':		&winheight,
+		\	'statusline':		&statusline,
+		\	'ruler':			&ruler,
+		\	'sidescroll':		&sidescroll,
+		\	'sidescrolloff':	&sidescrolloff
+		\ }
+	if has('gui_running')
+		let t:goyo_revert.guioptions = &guioptions
+	endif
 
-  " vim-gitgutter
-  let t:goyo_disabled_gitgutter = get(g:, 'gitgutter_enabled', 0)
-  if t:goyo_disabled_gitgutter
-    silent! GitGutterDisable
-  endif
+	" vim-gitgutter
+	let t:goyo_disabled_gitgutter = get(g:, 'gitgutter_enabled', 0)
+	if t:goyo_disabled_gitgutter
+		silent! GitGutterDisable
+	endif
 
-  " vim-airline
-  let t:goyo_disabled_airline = exists("#airline")
-  if t:goyo_disabled_airline
-    AirlineToggle
-  endif
+	" vim-airline
+	let t:goyo_disabled_airline = exists("#airline")
+	if t:goyo_disabled_airline
+		AirlineToggle
+	endif
 
-  " vim-powerline
-  let t:goyo_disabled_powerline = exists("#PowerlineMain")
-  if t:goyo_disabled_powerline
-    augroup PowerlineMain
-      autocmd!
-    augroup END
-    augroup! PowerlineMain
-  endif
+	" vim-powerline
+	let t:goyo_disabled_powerline = exists("#PowerlineMain")
+	if t:goyo_disabled_powerline
+		augroup PowerlineMain
+			autocmd!
+		augroup END
+		augroup! PowerlineMain
+	endif
 
-  " lightline.vim
-  let t:goyo_disabled_lightline = exists('#LightLine')
-  if t:goyo_disabled_lightline
-    silent! call lightline#disable()
-  endif
+	" lightline.vim
+	let t:goyo_disabled_lightline = exists('#LightLine')
+	if t:goyo_disabled_lightline
+		silent! call lightline#disable()
+	endif
 
-  if !get(g:, 'goyo_linenr', 0)
-    setlocal nonu
-    if exists('&rnu')
-      setlocal nornu
-    endif
-  endif
-  if exists('&colorcolumn')
-    setlocal colorcolumn=
-  endif
+	if !get(g:, 'goyo_linenr', 0)
+		setlocal nonu
+		if exists('&rnu')
+			setlocal nornu
+		endif
+	endif
+	if exists('&colorcolumn')
+		setlocal colorcolumn=
+	endif
 
-  " Global options
-  set winwidth=1
-  let &winheight = max([&winminheight, 1])
-  set winminheight=1
-  set winheight=1
-  set laststatus=0
-  set showtabline=0
-  set noruler
-  set fillchars+=vert:\ 
-  set fillchars+=stl:.
-  set fillchars+=stlnc:\ 
-  set sidescroll=1
-  set sidescrolloff=0
+	" Global options
+	set winwidth=1
+	let &winheight=max([&winminheight, 1])
+	set winminheight=1
+	set winheight=1
+	set laststatus=0
+	set showtabline=0
+	set noruler
+	set fillchars+=vert:\
+	set fillchars+=stl:.
+	set fillchars+=stlnc:\
+	set sidescroll=1
+	set sidescrolloff=0
 
-  " Hide left-hand scrollbars
-  if has('gui_running')
-    set guioptions-=l
-    set guioptions-=L
-  endif
+	" Hide left-hand scrollbars
+	if has('gui_running')
+		set guioptions-=l
+		set guioptions-=L
+	endif
 
-  let t:goyo_pads.l = s:init_pad('vertical topleft new')
-  let t:goyo_pads.r = s:init_pad('vertical botright new')
-  let t:goyo_pads.t = s:init_pad('topleft new')
-  let t:goyo_pads.b = s:init_pad('botright new')
+	if t:goyo_width > 0
+		let t:goyo_pads.l = s:init_pad('vertical topleft new')
+		let t:goyo_pads.r = s:init_pad('vertical botright new')
+		if s:tmargin > 0
+			let t:goyo_pads.t = s:init_pad('topleft new')
+		endif
+		if s:bmargin > 0
+			let t:goyo_pads.b = s:init_pad('botright new')
+		endif
+	else
+		if s:lmargin > 0
+			let t:goyo_pads.l = s:init_pad('vertical topleft new')
+		endif
+		if s:rmargin > 0
+			let t:goyo_pads.r = s:init_pad('vertical botright new')
+		endif
+		if s:tmargin > 0
+			let t:goyo_pads.t = s:init_pad('topleft new')
+		endif
+		if s:bmargin > 0
+			let t:goyo_pads.b = s:init_pad('botright new')
+		endif
+	endif
 
-  call s:resize_pads()
-  call s:tranquilize()
+	call s:resize_pads()
+	call s:tranquilize()
 
-  let &statusline = repeat(' ', winwidth(0))
+	let &statusline = repeat(' ', winwidth(0))
 
-  augroup goyo
-    autocmd!
-    autocmd BufWinLeave <buffer> call s:goyo_off()
-    autocmd TabLeave    *        call s:goyo_off()
-    autocmd VimResized  *        call s:resize_pads()
-    autocmd ColorScheme *        call s:tranquilize()
-  augroup END
+	augroup goyo
+		autocmd!
+		autocmd BufWinLeave <buffer>	call s:goyo_off()
+		autocmd TabLeave	*			call s:goyo_off()
+		autocmd VimResized	*			call s:resize_pads()
+		autocmd ColorScheme *			call s:tranquilize()
+	augroup END
 
-  if exists('g:goyo_callbacks[0]')
-    call g:goyo_callbacks[0]()
-  endif
+	if exists('g:goyo_callbacks[0]')
+		call g:goyo_callbacks[0]()
+	endif
 endfunction
 
 function! s:goyo_off()
-  if !exists('#goyo')
-    return
-  endif
+	if !exists('#goyo')
+		return
+	endif
 
-  " Oops, not this tab
-  if !exists('t:goyo_revert')
-    return
-  endif
+	" Oops, not this tab
+	if !exists('t:goyo_revert')
+		return
+	endif
 
-  " Clear auto commands
-  augroup goyo
-    autocmd!
-  augroup END
-  augroup! goyo
-  augroup goyop
-    autocmd!
-  augroup END
-  augroup! goyop
+	" Clear auto commands
+	augroup goyo
+	autocmd!
+	augroup END
+	augroup! goyo
+	augroup goyop
+	autocmd!
+	augroup END
+	augroup! goyop
 
-  let goyo_revert             = t:goyo_revert
-  let goyo_disabled_gitgutter = t:goyo_disabled_gitgutter
-  let goyo_disabled_airline   = t:goyo_disabled_airline
-  let goyo_disabled_powerline = t:goyo_disabled_powerline
-  let goyo_disabled_lightline = t:goyo_disabled_lightline
-  let goyo_orig_buffer        = t:goyo_master
-  let [line, col]             = [line('.'), col('.')]
+	let goyo_revert				= t:goyo_revert
+	let goyo_disabled_gitgutter	= t:goyo_disabled_gitgutter
+	let goyo_disabled_airline	= t:goyo_disabled_airline
+	let goyo_disabled_powerline	= t:goyo_disabled_powerline
+	let goyo_disabled_lightline	= t:goyo_disabled_lightline
+	let goyo_orig_buffer		= t:goyo_master
+	let [line, col]				= [line('.'), col('.')]
 
-  if tabpagenr() == 1
-    tabnew
-    normal! gt
-    bd
-  endif
-  tabclose
-  execute 'normal! '.s:orig_tab.'gt'
-  if winbufnr(0) == goyo_orig_buffer
-    execute printf('normal! %dG%d|', line, col)
-  endif
+	if tabpagenr() == 1
+		tabnew
+		normal! gt
+		bd
+	endif
+	tabclose
+	execute 'normal! '.s:orig_tab.'gt'
+	if winbufnr(0) == goyo_orig_buffer
+		execute printf('normal! %dG%d|', line, col)
+	endif
 
-  let wmh = remove(goyo_revert, 'winminheight')
-  let wh  = remove(goyo_revert, 'winheight')
-  let &winheight    = max([wmh, 1])
-  let &winminheight = wmh
-  let &winheight    = wh
+	let wmh = remove(goyo_revert, 'winminheight')
+	let wh	= remove(goyo_revert, 'winheight')
+	let &winheight = max([wmh, 1])
+	let &winminheight = wmh
+	let &winheight = wh
 
-  for [k, v] in items(goyo_revert)
-    execute printf("let &%s = %s", k, string(v))
-  endfor
-  execute 'colo '. get(g:, 'colors_name', 'default')
+	for [k, v] in items(goyo_revert)
+		execute printf("let &%s = %s", k, string(v))
+	endfor
+	execute 'colo '. get(g:, 'colors_name', 'default')
 
-  if goyo_disabled_gitgutter
-    silent! GitGutterEnable
-  endif
+	if goyo_disabled_gitgutter
+		silent! GitGutterEnable
+	endif
 
-  if goyo_disabled_airline && !exists("#airline")
-    AirlineToggle
-    silent! AirlineRefresh
-  endif
+	if goyo_disabled_airline && !exists("#airline")
+		AirlineToggle
+		silent! AirlineRefresh
+	endif
 
-  if goyo_disabled_powerline && !exists("#PowerlineMain")
-    doautocmd PowerlineStartup VimEnter
-    silent! PowerlineReloadColorscheme
-  endif
+	if goyo_disabled_powerline && !exists("#PowerlineMain")
+		doautocmd PowerlineStartup VimEnter
+		silent! PowerlineReloadColorscheme
+	endif
 
-  if goyo_disabled_lightline
-    silent! call lightline#enable()
-  endif
+	if goyo_disabled_lightline
+		silent! call lightline#enable()
+	endif
 
-  if exists('#Powerline')
-    doautocmd Powerline ColorScheme
-  endif
+	if exists('#Powerline')
+		doautocmd Powerline ColorScheme
+	endif
 
-  if exists('g:goyo_callbacks[1]')
-    call g:goyo_callbacks[1]()
-  endif
+	if exists('g:goyo_callbacks[1]')
+		call g:goyo_callbacks[1]()
+	endif
 endfunction
 
 function! s:goyo(...)
-  let width = a:0 > 0 ? a:1 : get(g:, 'goyo_width', 80)
+	let width = a:0 > 0 ? a:1 : s:goyo_width
 
-  if exists('#goyo') == 0
-    call s:goyo_on(width)
-  elseif a:0 > 0
-    let t:goyo_width = width
-    call s:resize_pads()
-  else
-    call s:goyo_off()
-  end
+	if exists('#goyo') == 0
+		call s:goyo_on(width)
+	elseif a:0 > 0
+		let t:goyo_width = width
+		call s:resize_pads()
+	else
+		call s:goyo_off()
+	end
 endfunction
 
 command! -nargs=? Goyo call s:goyo(<args>)

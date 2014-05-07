@@ -24,7 +24,7 @@ Usage
 You might map this to a key combo in your `.vimrc` like so:
 ```vim
 "" Map Goyo toggle to <Leader> + spacebar
-nnoremap <Leader><Space> :Goyo<CR>  
+nnoremap <Leader><Space> :Goyo<CR>
 ```
 
 Configuration
@@ -35,6 +35,19 @@ Configuration
 - `g:goyo_margin_bottom` (default: 4)
 - `g:goyo_linenr` (default: 0)
 - `g:goyo_callbacks` ([before_funcref, after_funcref])
+
+### adding by atommixz
+
+try it:
+- `let goyo_width = 80
+let goyo_margin_top = 0
+let goyo_margin_bottom = 0`
+or it:
+- `let goyo_width = 0
+let goyo_margin_left = 45
+let goyo_margin_right = 0
+let goyo_margin_top = 0
+let goyo_margin_bottom = 0`
 
 ### Callbacks
 
